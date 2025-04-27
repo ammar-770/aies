@@ -1,0 +1,130 @@
+import tkinter as tk
+from tkinter import messagebox
+import copy
+
+class TicTacToe:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Tic-Tac-Toe with AI")
+        self.board = [[None for _ in range(3)] for _ in range(3)]
+        self.buttons = [[None for _ in range(3)] for _ in range(3)]
+        self.player = 'X'
+        self.create_widgets()
+
+    def create_widgets(self):
+        for i in range(3):
+            for j in range(3):
+                button = tk.Button(self.root, text='', font='Arial 20', height=2,
+                                   width=5, command=lambda row=i, col=j: self.click(row, col))
+                button.grid(row=i, column=j)
+                self.buttons[i][j] = button
+        
+        self.reset_button = tk.Button(self.root, text='Retry', font='Arial 14', command=self.reset_game)
+        self.reset_button.grid(row=3, column=0, columnspan=3, sticky='nsew')
+
+    def click(self, row, col):
+        if self.board[row][col] is None:
+            self.board[row][col] = self.player
+            self.buttons[row][col]['text'] = self.player
+            
+            if self.check_winner(self.board, self.player):
+                messagebox.showinfo("Game Over", f"Player {self.player} wins!")
+                self.disable_all_buttons()
+                return
+            elif self.is_draw(self.board):
+                messagebox.showinfo("Game Over", "It's a draw!")
+                return
+
+            self.player = 'O'
+            best_score = float('-inf')
+            best_move = None
+            for i in range(3):
+                for j in range(3):
+                    if self.board[i][j] is None:
+                        self.board[i][j] = 'O'
+                        score = self.minimax(self.board, 0, False, float('-inf'), float('inf'))
+                        self.board[i][j] = None
+                        if score > best_score:
+                            best_score = score
+                            best_move = (i, j)
+
+            if best_move:
+                self.board[best_move[0]][best_move[1]] = 'O'
+                self.buttons[best_move[0]][best_move[1]]['text'] = 'O'
+                if self.check_winner(self.board, 'O'):
+                    messagebox.showinfo("Game Over", "AI wins!")
+                    self.disable_all_buttons()
+                    return
+                elif self.is_draw(self.board):
+                    messagebox.showinfo("Game Over", "It's a draw!")
+                    return
+            self.player = 'X'
+
+    def minimax(self, board, depth, is_maximizing, alpha, beta):
+        if self.check_winner(board, 'O'):
+            return 1
+        elif self.check_winner(board, 'X'):
+            return -1
+        elif self.is_draw(board):
+            return 0
+
+        if is_maximizing:
+            max_eval = float('-inf')
+            for i in range(3):
+                for j in range(3):
+                    if board[i][j] is None:
+                        board[i][j] = 'O'
+                        eval = self.minimax(board, depth+1, False, alpha, beta)
+                        board[i][j] = None
+                        max_eval = max(max_eval, eval)
+                        alpha = max(alpha, eval)
+                        if beta <= alpha:
+                            break
+            return max_eval
+        else:
+            min_eval = float('inf')
+            for i in range(3):
+                for j in range(3):
+                    if board[i][j] is None:
+                        board[i][j] = 'X'
+                        eval = self.minimax(board, depth+1, True, alpha, beta)
+                        board[i][j] = None
+                        min_eval = min(min_eval, eval)
+                        beta = min(beta, eval)
+                        if beta <= alpha:
+                            break
+            return min_eval
+
+    def check_winner(self, board, player):
+        for row in board:
+            if all(cell == player for cell in row):
+                return True
+        for col in range(3):
+            if all(board[row][col] == player for row in range(3)):
+                return True
+        if all(board[i][i] == player for i in range(3)):
+            return True
+        if all(board[i][2-i] == player for i in range(3)):
+            return True
+        return False
+
+    def is_draw(self, board):
+        return all(all(cell is not None for cell in row) for row in board)
+
+    def disable_all_buttons(self):
+        for i in range(3):
+            for j in range(3):
+                self.buttons[i][j]['state'] = 'disabled'
+
+    def reset_game(self):
+        self.board = [[None for _ in range(3)] for _ in range(3)]
+        self.player = 'X'
+        for i in range(3):
+            for j in range(3):
+                self.buttons[i][j]['text'] = ''
+                self.buttons[i][j]['state'] = 'normal'
+
+if __name__ == '__main__':
+    root = tk.Tk()
+    game = TicTacToe(root)
+    root.mainloop()
